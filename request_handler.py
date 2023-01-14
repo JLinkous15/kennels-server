@@ -20,9 +20,9 @@ class HandleRequests(BaseHTTPRequestHandler):
 
         # Set the response code to 'Ok'
     def do_GET(self):
-        self._set_headers(200)
         response = {}  # Default response
 
+        # self._set_headers(200)
         # Parse the URL and capture the tuple that is returned
         (resource, id) = self.parse_url(self.path)
 
@@ -39,6 +39,7 @@ class HandleRequests(BaseHTTPRequestHandler):
                 response = get_all_locations()
 
         elif resource == "employees":
+
             if id is not None:
                 response = get_single_employee(id)
             else:
@@ -49,6 +50,12 @@ class HandleRequests(BaseHTTPRequestHandler):
                 response = get_single_customer(id)
             else:
                 response = get_all_customers()
+        
+        if response is not None:
+            self._set_headers(200)
+        else:
+            self._set_headers(404)
+            response={"message": f"{resource} {id} does not exist."}
 
         self.wfile.write(json.dumps(response).encode())
 
@@ -56,7 +63,6 @@ class HandleRequests(BaseHTTPRequestHandler):
     # It handles any POST request.
     def do_POST(self):
 
-        self._set_headers(201)
         content_len = int(self.headers.get('content-length', 0))
         post_body = self.rfile.read(content_len)
 
@@ -73,7 +79,16 @@ class HandleRequests(BaseHTTPRequestHandler):
         # the orange squiggle, you'll define the create_animal
         # function next.
         if resource == "animals":
-            new_resource = create_animal(post_body)
+            if "name" in post_body and "species" in post_body:
+                new_resource = create_animal(post_body)
+            elif "species" not in post_body:
+                print("needs species")
+                new_resource = {"message":"Please provide a species."}
+            elif "name" not in post_body:
+                print("needs name")
+                new_resource = {"message":"Please provide a name."}
+                
+            
         elif resource == "locations":
             new_resource = create_location(post_body)
         elif resource == "employees":
@@ -81,28 +96,38 @@ class HandleRequests(BaseHTTPRequestHandler):
         elif resource == "customers":
             new_resource = create_customer(post_body)
 
+        if "message" in new_resource:
+            self._set_headers(400)
+        else:
+            self._set_headers(201)
+
         # Encode the new animal and send in response
         self.wfile.write(json.dumps(new_resource).encode())
 
     def do_DELETE(self):
         # Set a 204 response code
-        self._set_headers(204)
+        
 
         # Parse the URL
         (resource, id) = self.parse_url(self.path)
-
+        message=""
         # Delete a single animal from the list
         if resource == "animals":
+            self._set_headers(204)
             delete_animal(id)
-        elif resource == "customer":
-            delete_customer(id)
+        elif resource == "customers":
+            self._set_headers(405)
+            print("You do not have access to delete customers.")
+            message="Please contact main office to delete customers."
         elif resource == "employee":
+            self._set_headers(204)
             delete_employee(id)
         elif resource == "location":
+            self._set_headers(204)
             delete_location(id)
 
         # Encode the new animal and send in response
-        self.wfile.write("".encode())
+        self.wfile.write(message.encode())
 
     # A method that handles any PUT request.
     def do_PUT(self):
