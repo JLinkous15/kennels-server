@@ -1,3 +1,7 @@
+import json
+import sqlite3
+from models import Location
+
 LOCATIONS = [
     {
         "id": 1,
@@ -12,19 +16,39 @@ LOCATIONS = [
 ]
 
 def get_all_locations():
-    return LOCATIONS
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor=conn.cursor()
+
+        db_cursor.execute("""
+        SELECT *
+        FROM location
+        """)
+    locations = []
+
+    dataset = db_cursor.fetchall()
+
+    for row in dataset:
+        location = Location(row["id"], row["name"], row["address"])
+        locations.append(location.__dict__)
+    return locations
 
 def get_single_location(id):
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory=sqlite3.Row
+        db_cursor = conn.cursor()
 
-    requested_location = None
+        db_cursor.execute("""
+        SELECT *
+        FROM location a
+        WHERE a.id=?
+        """, (id, ))
 
-    for location in LOCATIONS:
-        # Dictionaries in Python use [] notation to find a key
-        # instead of the dot notation that JavaScript used.
-        if location["id"] == id:
-            requested_location = location
+        data=db_cursor.fetchone()
 
-    return requested_location 
+        location = Location(data["id"], data["name"], data["address"])
+
+        return location.__dict__
 
 def create_location(location):
     max_id = LOCATIONS[-1]["id"]
@@ -44,8 +68,19 @@ def delete_location(id):
         LOCATIONS.pop(location_index)
 
 def update_location(id, new_location):
-    
-    for index, location in enumerate(LOCATIONS):
-        if location["id"] == id:
-            LOCATIONS[index] = new_location
-            break
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        db_cursor = conn.cursor()
+        db_cursor.execute("""
+        UPDATE Location
+            SET
+                name = ?,
+                address = ?
+        WHERE id = ?
+        """, (new_location["name"], new_location["address"], id))
+
+        rows_affected = db_cursor.rowcount
+
+    if rows_affected == 0:
+        return False
+    else:
+        return True
