@@ -58,11 +58,18 @@ def get_single_employee(id):
         return employee.__dict__
 
 def create_employee(employee):
-    max_id = EMPLOYEES[-1]["id"]
-    new_id = max_id + 1
-    employee["id"] = new_id
-    EMPLOYEES.append(employee)
-    return employee
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        INSERT INTO Employee
+            (name, address, location_id)
+        VALUES( ?, ?, ? );
+        """, (employee["name"], employee["address"], employee["location_id"]))
+
+        id = db_cursor.lastrowid
+
+        employee["id"] = id
 
 def delete_employee(id):
     employee_index = -1
