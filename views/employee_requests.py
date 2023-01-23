@@ -70,6 +70,7 @@ def create_employee(employee):
         id = db_cursor.lastrowid
 
         employee["id"] = id
+        return employee
 
 def delete_employee(id):
     employee_index = -1
