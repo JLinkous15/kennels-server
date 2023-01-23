@@ -15,23 +15,39 @@ LOCATIONS = [
     }
 ]
 
-def get_all_locations():
+def get_all_locations(query_params):
     with sqlite3.connect("./kennel.sqlite3") as conn:
         conn.row_factory = sqlite3.Row
         db_cursor=conn.cursor()
 
-        db_cursor.execute("""
-        SELECT *
-        FROM location
-        """)
-    locations = []
+        group_by = ["",""]
 
-    dataset = db_cursor.fetchall()
+        if len(query_params)==0:
+            group_by[0] = "COUNT(*) AS animals"
+            group_by[1] = "GROUP BY a.location_id"
 
-    for row in dataset:
-        location = Location(row["id"], row["name"], row["address"])
-        locations.append(location.__dict__)
-    return locations
+        to_be_executed = f"""
+        SELECT 
+            l.id,
+            l.name,
+            l.address,
+            a.location_id,
+            {group_by[0]}
+        FROM location l
+        JOIN animal a ON a.location_id = l.id
+        {group_by[1]}
+        """
+
+        db_cursor.execute(to_be_executed)
+        locations = []
+
+        dataset = db_cursor.fetchall()
+
+        for row in dataset:
+            location = Location(row["id"], row["name"], row["address"])
+            location.animals = (row["animals"])
+            locations.append(location.__dict__)
+        return locations
 
 def get_single_location(id):
     with sqlite3.connect("./kennel.sqlite3") as conn:

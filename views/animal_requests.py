@@ -31,7 +31,7 @@ ANIMALS = [
     }
 ]
 
-def get_all_animals():
+def get_all_animals(query_params):
     # Open a connection to the database
     with sqlite3.connect("./kennel.sqlite3") as conn:
 
@@ -39,26 +39,51 @@ def get_all_animals():
         conn.row_factory = sqlite3.Row
         db_cursor = conn.cursor()
 
-        # Write the SQL query to get the information you want
-        db_cursor.execute("""
+        sort_by = ""
+        where_clause = ""
+
+        if len(query_params) != 0:
+            param = query_params[0]
+            [qs_key, qs_value] = param.split("=")
+
+            if qs_key == "_sortBy":
+                if qs_value == 'location':
+                    sort_by = " ORDER BY location_id"
+                if qs_value == "customer":
+                    sort_by = "ORDER BY customer_id"
+                if qs_value == 'status':
+                    sort_by = 'ORDER BY status ASC'
+                if qs_value == 'name':
+                    sort_by = 'ORDER BY a.name ASC'
+            elif qs_key == "locationId":
+                where_clause = f"WHERE a.location_id = {qs_value}"
+            elif qs_key == "status":
+                where_clause = f"WHERE a.status = \"{qs_value}\""
+
+        sql_to_execute = f"""
         SELECT
             a.id,
-            a.name pet_name,
+            a.name,
             a.breed,
             a.status,
             a.location_id,
-            a.customer_id,
             l.name location_name,
             l.address location_address,
-            c.name customer_name,
-            c.address customer_address,
-            c.email customer_email
+            a.customer_id,
+            c.name AS customer_name,
+            c.address AS customer_address,
+            c.email AS customer_email
         FROM Animal a
-        JOIN Location l
+        JOIN `Location` l
             ON l.id = a.location_id
         JOIN Customer c
-            ON c.id = a.customer_id;
-        """)
+            ON c.id = a.customer_id
+        {where_clause}
+        {sort_by}
+        """
+
+        # Write the SQL query to get the information you want
+        db_cursor.execute(sql_to_execute)
 
         # Initialize an empty list to hold all animal representations
         animals = []
@@ -73,13 +98,11 @@ def get_all_animals():
             # Note that the database fields are specified in
             # exact order of the parameters defined in the
             # Animal class above.
-            animal = Animal(row['id'], row['pet_name'], row['breed'],
-                            row['status'], row['location_id'],
-                            row['customer_id'])
+            animal = Animal(row['id'], row['name'], row['breed'],row['status'], row['location_id'],row['customer_id'])
 
-            location = Location(row["id"], row["location_name"], row["location_address"])
+            location = Location(row["location_id"], row["location_name"], row["location_address"])
 
-            customer = Customer(row["id"], row["customer_name"], row["customer_address"], row["customer_email"])
+            customer = Customer(row["customer_id"], row["customer_name"], row["customer_address"], row["customer_email"])
             
             animal.location = location.__dict__
 
