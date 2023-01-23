@@ -109,11 +109,11 @@ class HandleRequests(BaseHTTPRequestHandler):
         # the orange squiggle, you'll define the create_animal
         # function next.
         if resource == "animals":
-            if "name" in post_body and "species" in post_body:
+            if "name" in post_body and "breed" in post_body:
                 new_resource = create_animal(post_body)
-            elif "species" not in post_body:
-                print("needs species")
-                new_resource = {"message":"Please provide a species."}
+            elif "breed" not in post_body:
+                print("needs breed")
+                new_resource = {"message":"Please provide a breed."}
             elif "name" not in post_body:
                 print("needs name")
                 new_resource = {"message":"Please provide a name."}
